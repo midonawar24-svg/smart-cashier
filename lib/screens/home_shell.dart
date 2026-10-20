@@ -17,12 +17,26 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
-  static const _pages = [
-    SalePage(),
-    ProductsPage(),
+  // الإشارة دي بتقول للشاشات إن بيانات البيع والمخزون اتغيّرت.
+  // HomeShell هو المسؤول عن الإشارة، مش شاشة البيع أو المخزون لوحدها.
+  final ValueNotifier<int> _dataRevision = ValueNotifier<int>(0);
+
+  // بنمرر نفس الإشارة للبيع والمخزون علشان يفضل التواصل بينهم غير مباشر.
+  late final List<Widget> _pages = [
+    SalePage(
+      onSaleCompleted: () => _dataRevision.value++,
+    ),
+    ProductsPage(dataRevision: _dataRevision),
     AccountsPage(),
     ReportsPage(),
   ];
+
+  @override
+  void dispose() {
+    // بننضف الإشارة لما الغلاف الرئيسي يتقفل.
+    _dataRevision.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +97,11 @@ class _HomeShellState extends State<HomeShell> {
 }
 
 class SalePage extends StatefulWidget {
-  const SalePage({super.key});
+  const SalePage({super.key, this.onSaleCompleted});
+
+  // بيتنادى بعد نجاح حفظ الفاتورة فقط، علشان الغلاف يحدّث الشاشات.
+  final VoidCallback? onSaleCompleted;
+
   @override
   State<SalePage> createState() => _SalePageState();
 }
@@ -141,6 +159,10 @@ class _SalePageState extends State<SalePage> {
       }
       await AppDatabase.instance.completeSale(items: items, paid: total);
       if (!mounted) return;
+
+      // الفاتورة اتحفظت وخصم المخزون اكتمل؛ نعلن التغيير مرة واحدة.
+      widget.onSaleCompleted?.call();
+
       setState(() {
         _cart.clear();
         _message = 'اتحفظت الفاتورة بنجاح.';
@@ -336,7 +358,11 @@ class _SalePageState extends State<SalePage> {
 }
 
 class ProductsPage extends StatefulWidget {
-  const ProductsPage({super.key});
+  const ProductsPage({super.key, required this.dataRevision});
+
+  // إشارة مشتركة بتتغير بعد البيع الناجح، وبتخلّي الشاشة تعيد قراءة المخزون.
+  final ValueNotifier<int> dataRevision;
+
   @override
   State<ProductsPage> createState() => _ProductsPageState();
 }
@@ -351,6 +377,11 @@ class _ProductsPageState extends State<ProductsPage> {
   List<Map<String, Object?>> _items = [];
   bool _scanning = false;
   String _inventoryMessage = '';
+
+  // لما إشارة البيانات تتغير، بنجيب الرصيد الفعلي من قاعدة البيانات.
+  void _onDataRevisionChanged() {
+    _refresh();
+  }
 
   Future<void> _refresh() async {
     final data = await AppDatabase.instance.products(
@@ -483,11 +514,16 @@ class _ProductsPageState extends State<ProductsPage> {
   @override
   void initState() {
     super.initState();
+
+    // بنسمع لتغيّر البيانات، مع استمرار التحميل الأول المعتاد.
+    widget.dataRevision.addListener(_onDataRevisionChanged);
     _refresh();
   }
 
   @override
   void dispose() {
+    // بنفصل المستمع قبل إغلاق الشاشة علشان مايفضلش متعلق بيها.
+    widget.dataRevision.removeListener(_onDataRevisionChanged);
     _search.dispose();
     _barcode.dispose();
     _name.dispose();
