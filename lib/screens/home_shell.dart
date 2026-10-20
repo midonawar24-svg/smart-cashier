@@ -28,7 +28,7 @@ class _HomeShellState extends State<HomeShell> {
     ),
     ProductsPage(dataRevision: _dataRevision),
     AccountsPage(),
-    ReportsPage(),
+    ReportsPage(dataRevision: _dataRevision),
   ];
 
   @override
@@ -796,15 +796,50 @@ class _AccountsPageState extends State<AccountsPage> {
       );
 }
 
-class ReportsPage extends StatelessWidget {
-  const ReportsPage({super.key});
+class ReportsPage extends StatefulWidget {
+  const ReportsPage({super.key, required this.dataRevision});
+
+  // نفس الإشارة اللي بتتغير بعد نجاح البيع، من غير ربط مباشر بشاشة البيع.
+  final ValueNotifier<int> dataRevision;
+
+  @override
+  State<ReportsPage> createState() => _ReportsPageState();
+}
+
+class _ReportsPageState extends State<ReportsPage> {
+  // بنحتفظ بطلب تحميل الفواتير الحالي علشان نقدر نبدله بعد البيع.
+  late Future<List<Map<String, Object?>>> _todaySales;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // أول تحميل للتقارير عند إنشاء الشاشة.
+    _todaySales = AppDatabase.instance.todaySales();
+
+    // أي بيع ناجح يغيّر الإشارة، فنطلب بيانات أحدث من قاعدة البيانات.
+    widget.dataRevision.addListener(_onDataRevisionChanged);
+  }
+
+  void _onDataRevisionChanged() {
+    setState(() {
+      _todaySales = AppDatabase.instance.todaySales();
+    });
+  }
+
+  @override
+  void dispose() {
+    // بنفصل المستمع علشان مايفضلش متعلق بالشاشة بعد إغلاقها.
+    widget.dataRevision.removeListener(_onDataRevisionChanged);
+    super.dispose();
+  }
 
   @override
   Widget build(
     BuildContext context,
   ) =>
       FutureBuilder<List<Map<String, Object?>>>(
-        future: AppDatabase.instance.todaySales(),
+        future: _todaySales,
         builder: (context, snapshot) {
           final sales = snapshot.data ?? const <Map<String, Object?>>[];
           double sum(String key) => sales.fold<double>(
