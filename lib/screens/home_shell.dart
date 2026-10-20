@@ -198,7 +198,7 @@ class _SalePageState extends State<SalePage> {
                     child: MobileScanner(
                       // بنعرض تفاصيل فشل الكاميرا بدل رسالة الخطأ العامة،
                       // علشان نعرف السبب الحقيقي قبل ما نقرر إصلاحه.
-                      errorBuilder: (context, error) {
+                      errorBuilder: (context, error, child) {
                         final details = error.errorDetails?.message;
                         final code = error.errorCode;
 
