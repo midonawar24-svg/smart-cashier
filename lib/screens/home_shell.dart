@@ -31,10 +31,15 @@ class _HomeShellState extends State<HomeShell> {
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('كاشير المحل الذكي', style: TextStyle(fontWeight: FontWeight.w900)),
+            Text(
+              'كاشير المحل الذكي',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
             SizedBox(height: 3),
-            Text('قراءة باركود • حساب مكسب • دخل وخارج',
-                style: TextStyle(color: _muted, fontSize: 12)),
+            Text(
+              'قراءة باركود • حساب مكسب • دخل وخارج',
+              style: TextStyle(color: _muted, fontSize: 12),
+            ),
           ],
         ),
         actions: const [
@@ -51,10 +56,26 @@ class _HomeShellState extends State<HomeShell> {
         backgroundColor: const Color(0xFF071310),
         indicatorColor: _neon,
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.shopping_cart_outlined), selectedIcon: Icon(Icons.shopping_cart), label: 'البيع'),
-          NavigationDestination(icon: Icon(Icons.inventory_2_outlined), selectedIcon: Icon(Icons.inventory_2), label: 'المخزون'),
-          NavigationDestination(icon: Icon(Icons.calculate_outlined), selectedIcon: Icon(Icons.calculate), label: 'الحسابات'),
-          NavigationDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart), label: 'التقارير'),
+          NavigationDestination(
+            icon: Icon(Icons.shopping_cart_outlined),
+            selectedIcon: Icon(Icons.shopping_cart),
+            label: 'البيع',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.inventory_2_outlined),
+            selectedIcon: Icon(Icons.inventory_2),
+            label: 'المخزون',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calculate_outlined),
+            selectedIcon: Icon(Icons.calculate),
+            label: 'الحسابات',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.bar_chart_outlined),
+            selectedIcon: Icon(Icons.bar_chart),
+            label: 'التقارير',
+          ),
         ],
       ),
     );
@@ -115,7 +136,8 @@ class _SalePageState extends State<SalePage> {
       double total = 0;
       for (final item in items) {
         final p = products.firstWhere((x) => x['barcode'] == item['barcode']);
-        total += (p['sell_price']! as num).toDouble() * (item['quantity']! as int);
+        total +=
+            (p['sell_price']! as num).toDouble() * (item['quantity']! as int);
       }
       await AppDatabase.instance.completeSale(items: items, paid: total);
       if (!mounted) return;
@@ -129,7 +151,9 @@ class _SalePageState extends State<SalePage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -140,86 +164,135 @@ class _SalePageState extends State<SalePage> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(padding: const EdgeInsets.all(14), children: [
-      _Panel(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: _neon,
-              foregroundColor: const Color(0xFF002116),
-              padding: const EdgeInsets.symmetric(vertical: 23),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            ),
-            onPressed: _openScanner,
-            icon: const Icon(Icons.photo_camera_outlined, size: 28),
-            label: const Text('افتح الكاميرا', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
-          ),
-          const SizedBox(height: 12),
-          Text(_message, style: const TextStyle(color: _muted)),
-          if (_scanning) ...[
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: SizedBox(
-                height: 300,
-                child: MobileScanner(
-                  onDetect: (capture) {
-                    final codes = capture.barcodes;
-                    final code = codes.isEmpty ? null : codes.first.rawValue;
-                    if (code != null && code.isNotEmpty) {
-                      setState(() => _scanning = false);
-                      _addBarcode(code);
-                    }
-                  },
+    return ListView(
+      padding: const EdgeInsets.all(14),
+      children: [
+        _Panel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: _neon,
+                  foregroundColor: const Color(0xFF002116),
+                  padding: const EdgeInsets.symmetric(vertical: 23),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                onPressed: _openScanner,
+                icon: const Icon(Icons.photo_camera_outlined, size: 28),
+                label: const Text(
+                  'افتح الكاميرا',
+                  style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
                 ),
               ),
-            ),
-            TextButton(onPressed: () => setState(() => _scanning = false), child: const Text('إغلاق الكاميرا')),
-          ],
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(child: TextField(
-              controller: _barcode,
-              keyboardType: TextInputType.text,
-              decoration: const InputDecoration(hintText: 'اكتب الباركود يدويًا'),
-              onSubmitted: _addBarcode,
-            )),
-            const SizedBox(width: 8),
-            FilledButton(onPressed: () => _addBarcode(_barcode.text), child: const Text('إضافة')),
-          ]),
-        ]),
-      ),
-      _Panel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('سلة البيع • ${_cart.length} صنف', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 12),
-        if (_cart.isEmpty)
-          const Center(child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Column(children: [
-              Icon(Icons.qr_code_scanner, size: 52, color: _muted),
-              SizedBox(height: 8),
-              Text('السلة فاضية', style: TextStyle(color: _muted, fontSize: 18)),
-            ]),
-          ))
-        else
-          ..._cart.entries.map((entry) => ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(entry.key),
-            subtitle: Text('الكمية: ${entry.value}'),
-            trailing: IconButton(
-              onPressed: () => setState(() {
-                if (entry.value <= 1) {
-                  _cart.remove(entry.key);
-                } else {
-                  _cart[entry.key] = entry.value - 1;
-                }
-              }),
-              icon: const Icon(Icons.remove_circle_outline),
-            ),
-          )),
-        FilledButton.icon(onPressed: _finishSale, icon: const Icon(Icons.check_circle_outline), label: const Text('حفظ البيع وخصم المخزون')),
-      ])),
-    ]);
+              const SizedBox(height: 12),
+              Text(_message, style: const TextStyle(color: _muted)),
+              if (_scanning) ...[
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: SizedBox(
+                    height: 300,
+                    child: MobileScanner(
+                      onDetect: (capture) {
+                        final codes = capture.barcodes;
+                        final code = codes.isEmpty
+                            ? null
+                            : codes.first.rawValue;
+                        if (code != null && code.isNotEmpty) {
+                          setState(() => _scanning = false);
+                          _addBarcode(code);
+                        }
+                      },
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => setState(() => _scanning = false),
+                  child: const Text('إغلاق الكاميرا'),
+                ),
+              ],
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _barcode,
+                      keyboardType: TextInputType.text,
+                      decoration: const InputDecoration(
+                        hintText: 'اكتب الباركود يدويًا',
+                      ),
+                      onSubmitted: _addBarcode,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () => _addBarcode(_barcode.text),
+                    child: const Text('إضافة'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        _Panel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'سلة البيع • ${_cart.length} صنف',
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (_cart.isEmpty)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        Icon(Icons.qr_code_scanner, size: 52, color: _muted),
+                        SizedBox(height: 8),
+                        Text(
+                          'السلة فاضية',
+                          style: TextStyle(color: _muted, fontSize: 18),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                ..._cart.entries.map(
+                  (entry) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(entry.key),
+                    subtitle: Text('الكمية: ${entry.value}'),
+                    trailing: IconButton(
+                      onPressed: () => setState(() {
+                        if (entry.value <= 1) {
+                          _cart.remove(entry.key);
+                        } else {
+                          _cart[entry.key] = entry.value - 1;
+                        }
+                      }),
+                      icon: const Icon(Icons.remove_circle_outline),
+                    ),
+                  ),
+                ),
+              FilledButton.icon(
+                onPressed: _finishSale,
+                icon: const Icon(Icons.check_circle_outline),
+                label: const Text('حفظ البيع وخصم المخزون'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -239,7 +312,9 @@ class _ProductsPageState extends State<ProductsPage> {
   List<Map<String, Object?>> _items = [];
 
   Future<void> _refresh() async {
-    final data = await AppDatabase.instance.products(search: _search.text.trim());
+    final data = await AppDatabase.instance.products(
+      search: _search.text.trim(),
+    );
     if (mounted) setState(() => _items = data);
   }
 
@@ -247,9 +322,17 @@ class _ProductsPageState extends State<ProductsPage> {
     final buy = double.tryParse(_buy.text);
     final sell = double.tryParse(_sell.text);
     final qty = int.tryParse(_qty.text);
-    if (_barcode.text.trim().isEmpty || _name.text.trim().isEmpty ||
-        buy == null || sell == null || qty == null || buy < 0 || sell < 0 || qty < 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('راجع بيانات المنتج والأسعار والكمية.')));
+    if (_barcode.text.trim().isEmpty ||
+        _name.text.trim().isEmpty ||
+        buy == null ||
+        sell == null ||
+        qty == null ||
+        buy < 0 ||
+        sell < 0 ||
+        qty < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('راجع بيانات المنتج والأسعار والكمية.')),
+      );
       return;
     }
     await AppDatabase.instance.saveProduct(
@@ -259,50 +342,122 @@ class _ProductsPageState extends State<ProductsPage> {
       sellPrice: sell,
       quantity: qty,
     );
-    _barcode.clear(); _name.clear(); _buy.clear(); _sell.clear(); _qty.clear();
+    _barcode.clear();
+    _name.clear();
+    _buy.clear();
+    _sell.clear();
+    _qty.clear();
     await _refresh();
   }
 
   @override
-  void initState() { super.initState(); _refresh(); }
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
   @override
   void dispose() {
-    _search.dispose(); _barcode.dispose(); _name.dispose(); _buy.dispose(); _sell.dispose(); _qty.dispose();
+    _search.dispose();
+    _barcode.dispose();
+    _name.dispose();
+    _buy.dispose();
+    _sell.dispose();
+    _qty.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.all(14), children: [
-    _Panel(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const Text('إضافة منتج للمخزون', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
-      const SizedBox(height: 12),
-      TextField(controller: _barcode, decoration: const InputDecoration(labelText: 'الباركود')),
-      const SizedBox(height: 8),
-      TextField(controller: _name, decoration: const InputDecoration(labelText: 'اسم المنتج')),
-      const SizedBox(height: 8),
-      Row(children: [
-        Expanded(child: TextField(controller: _buy, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سعر الشراء'))),
-        const SizedBox(width: 8),
-        Expanded(child: TextField(controller: _sell, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سعر البيع'))),
-      ]),
-      const SizedBox(height: 8),
-      TextField(controller: _qty, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الكمية')),
-      const SizedBox(height: 12),
-      FilledButton(onPressed: _save, child: const Text('حفظ المنتج')),
-    ])),
-    _Panel(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const Text('المنتجات المسجلة', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
-      const SizedBox(height: 8),
-      TextField(controller: _search, decoration: const InputDecoration(hintText: 'بحث بالاسم أو الباركود'), onChanged: (_) => _refresh()),
-      const SizedBox(height: 8),
-      ..._items.map((p) => ListTile(
-        contentPadding: EdgeInsets.zero,
-        title: Text('${p['name']}'),
-        subtitle: Text('باركود: ${p['barcode']} • شراء: ${p['buy_price']} • بيع: ${p['sell_price']}'),
-        trailing: Text('${p['quantity']}', style: TextStyle(color: (p['quantity']! as int) <= 5 ? Colors.orange : _neon, fontWeight: FontWeight.bold)),
-      )),
-    ])),
-  ]);
+  Widget build(BuildContext context) => ListView(
+    padding: const EdgeInsets.all(14),
+    children: [
+      _Panel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'إضافة منتج للمخزون',
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _barcode,
+              decoration: const InputDecoration(labelText: 'الباركود'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _name,
+              decoration: const InputDecoration(labelText: 'اسم المنتج'),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _buy,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'سعر الشراء'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _sell,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'سعر البيع'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _qty,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'الكمية'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(onPressed: _save, child: const Text('حفظ المنتج')),
+          ],
+        ),
+      ),
+      _Panel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'المنتجات المسجلة',
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _search,
+              decoration: const InputDecoration(
+                hintText: 'بحث بالاسم أو الباركود',
+              ),
+              onChanged: (_) => _refresh(),
+            ),
+            const SizedBox(height: 8),
+            ..._items.map(
+              (p) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('${p['name']}'),
+                subtitle: Text(
+                  'باركود: ${p['barcode']} • شراء: ${p['buy_price']} • بيع: ${p['sell_price']}',
+                ),
+                trailing: Text(
+                  '${p['quantity']}',
+                  style: TextStyle(
+                    color: (p['quantity']! as int) <= 5 ? Colors.orange : _neon,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
 class AccountsPage extends StatefulWidget {
@@ -325,82 +480,166 @@ class _AccountsPageState extends State<AccountsPage> {
   Future<void> _add() async {
     final amount = double.tryParse(_amount.text);
     if (amount == null || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اكتب مبلغ أكبر من صفر.')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('اكتب مبلغ أكبر من صفر.')));
       return;
     }
-    await AppDatabase.instance.addCashMovement(type: _type, amount: amount, note: _note.text.trim());
-    _amount.clear(); _note.clear();
+    await AppDatabase.instance.addCashMovement(
+      type: _type,
+      amount: amount,
+      note: _note.text.trim(),
+    );
+    _amount.clear();
+    _note.clear();
     await _refresh();
   }
 
   @override
-  void initState() { super.initState(); _refresh(); }
-  @override
-  void dispose() { _amount.dispose(); _note.dispose(); super.dispose(); }
+  void initState() {
+    super.initState();
+    _refresh();
+  }
 
   @override
-  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.all(14), children: [
-    _Panel(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const Text('تسجيل مبلغ خارج', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
-      const SizedBox(height: 12),
-      DropdownButtonFormField<String>(
-        value: _type,
-        items: const [
-          DropdownMenuItem(value: 'مصروف تشغيلي', child: Text('مصروف تشغيلي')),
-          DropdownMenuItem(value: 'شراء بضاعة', child: Text('شراء بضاعة')),
-          DropdownMenuItem(value: 'سحب شخصي', child: Text('سحب شخصي')),
-          DropdownMenuItem(value: 'أخرى', child: Text('أخرى')),
-        ],
-        onChanged: (v) => setState(() => _type = v ?? 'مصروف تشغيلي'),
-        decoration: const InputDecoration(labelText: 'نوع الحركة'),
+  void dispose() {
+    _amount.dispose();
+    _note.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ListView(
+    padding: const EdgeInsets.all(14),
+    children: [
+      _Panel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'تسجيل مبلغ خارج',
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: _type,
+              items: const [
+                DropdownMenuItem(
+                  value: 'مصروف تشغيلي',
+                  child: Text('مصروف تشغيلي'),
+                ),
+                DropdownMenuItem(
+                  value: 'شراء بضاعة',
+                  child: Text('شراء بضاعة'),
+                ),
+                DropdownMenuItem(value: 'سحب شخصي', child: Text('سحب شخصي')),
+                DropdownMenuItem(value: 'أخرى', child: Text('أخرى')),
+              ],
+              onChanged: (v) => setState(() => _type = v ?? 'مصروف تشغيلي'),
+              decoration: const InputDecoration(labelText: 'نوع الحركة'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _amount,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'المبلغ بالجنيه'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _note,
+              decoration: const InputDecoration(labelText: 'التفاصيل'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(onPressed: _add, child: const Text('تسجيل الحركة')),
+          ],
+        ),
       ),
-      const SizedBox(height: 8),
-      TextField(controller: _amount, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'المبلغ بالجنيه')),
-      const SizedBox(height: 8),
-      TextField(controller: _note, decoration: const InputDecoration(labelText: 'التفاصيل')),
-      const SizedBox(height: 12),
-      FilledButton(onPressed: _add, child: const Text('تسجيل الحركة')),
-    ])),
-    _Panel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('حركات اليوم', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
-      ..._movements.map((m) => ListTile(
-        contentPadding: EdgeInsets.zero,
-        title: Text('${m['type']}'),
-        subtitle: Text('${m['note'] ?? ''}'),
-        trailing: Text('${m['amount']} ج.م'),
-      )),
-    ])),
-  ]);
+      _Panel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'حركات اليوم',
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+            ),
+            ..._movements.map(
+              (m) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('${m['type']}'),
+                subtitle: Text('${m['note'] ?? ''}'),
+                trailing: Text('${m['amount']} ج.م'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
 class ReportsPage extends StatelessWidget {
   const ReportsPage({super.key});
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<List<Map<String, Object?>>>(
+  Widget build(
+    BuildContext context,
+  ) => FutureBuilder<List<Map<String, Object?>>>(
     future: AppDatabase.instance.todaySales(),
     builder: (context, snapshot) {
       final sales = snapshot.data ?? const <Map<String, Object?>>[];
-      double sum(String key) => sales.fold<double>(0, (total, row) => total + ((row[key] as num?)?.toDouble() ?? 0));
-      return ListView(padding: const EdgeInsets.all(14), children: [
-        _Panel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('ملخص اليوم', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 14),
-          _Metric(label: 'عدد الفواتير', value: '${sales.length}'),
-          _Metric(label: 'إجمالي المبيعات', value: '${sum('total').toStringAsFixed(2)} ج.م'),
-          _Metric(label: 'تكلفة البضاعة', value: '${sum('cost').toStringAsFixed(2)} ج.م'),
-          _Metric(label: 'مجمل الربح', value: '${sum('profit').toStringAsFixed(2)} ج.م'),
-        ])),
-        _Panel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('آخر الفواتير', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
-          ...sales.map((s) => ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text('فاتورة #${s['id']}'),
-            subtitle: Text('${s['created_at']}'),
-            trailing: Text('${s['total']} ج.م'),
-          )),
-        ])),
-      ]);
+      double sum(String key) => sales.fold<double>(
+        0,
+        (total, row) => total + ((row[key] as num?)?.toDouble() ?? 0),
+      );
+      return ListView(
+        padding: const EdgeInsets.all(14),
+        children: [
+          _Panel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'ملخص اليوم',
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 14),
+                _Metric(label: 'عدد الفواتير', value: '${sales.length}'),
+                _Metric(
+                  label: 'إجمالي المبيعات',
+                  value: '${sum('total').toStringAsFixed(2)} ج.م',
+                ),
+                _Metric(
+                  label: 'تكلفة البضاعة',
+                  value: '${sum('cost').toStringAsFixed(2)} ج.م',
+                ),
+                _Metric(
+                  label: 'مجمل الربح',
+                  value: '${sum('profit').toStringAsFixed(2)} ج.م',
+                ),
+              ],
+            ),
+          ),
+          _Panel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'آخر الفواتير',
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+                ),
+                ...sales.map(
+                  (s) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('فاتورة #${s['id']}'),
+                    subtitle: Text('${s['created_at']}'),
+                    trailing: Text('${s['total']} ج.م'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
     },
   );
 }
@@ -422,9 +661,20 @@ class _Metric extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 7),
-    child: Row(children: [
-      Expanded(child: Text(label, style: const TextStyle(color: _muted))),
-      Text(value, style: const TextStyle(color: _neon, fontWeight: FontWeight.w900, fontSize: 17)),
-    ]),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(label, style: const TextStyle(color: _muted)),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            color: _neon,
+            fontWeight: FontWeight.w900,
+            fontSize: 17,
+          ),
+        ),
+      ],
+    ),
   );
 }

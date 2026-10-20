@@ -74,18 +74,14 @@ class AppDatabase {
     int lowStockThreshold = 5,
   }) async {
     final db = await database;
-    await db.insert(
-      'products',
-      {
-        'barcode': barcode.trim(),
-        'name': name.trim(),
-        'buy_price': buyPrice,
-        'sell_price': sellPrice,
-        'quantity': quantity,
-        'low_stock_threshold': lowStockThreshold,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('products', {
+      'barcode': barcode.trim(),
+      'name': name.trim(),
+      'buy_price': buyPrice,
+      'sell_price': sellPrice,
+      'quantity': quantity,
+      'low_stock_threshold': lowStockThreshold,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<List<Map<String, Object?>>> products({String search = ''}) async {
