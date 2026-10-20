@@ -5,16 +5,25 @@ import 'package:sqflite/sqflite.dart';
 /// بنستخدم SQLite بدل localStorage عشان البيانات تبقى مناسبة لتطبيق Android
 /// وتفضل موجودة بعد قفل التطبيق أو إعادة تشغيل الموبايل.
 class AppDatabase {
-  AppDatabase._();
+  AppDatabase._({String? databasePath}) : _databasePath = databasePath;
+
+  /// نسخة مستقلة للاختبارات؛ بتستخدم مسارًا مؤقتًا بدل قاعدة التطبيق.
+  AppDatabase.forTesting({required String databasePath})
+      : this._(databasePath: databasePath);
+
   static final AppDatabase instance = AppDatabase._();
 
+  final String? _databasePath;
   Database? _database;
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    final directory = await getDatabasesPath();
+    // لو الاختبار محدد مسارًا، نستخدمه؛ غير كده نفضل على مسار التطبيق المعتاد.
+    final path =
+        _databasePath ?? p.join(await getDatabasesPath(), 'smart_cashier.db');
+
     _database = await openDatabase(
-      p.join(directory, 'smart_cashier.db'),
+      path,
       version: 1,
       onCreate: (db, version) async {
         await db.execute('''
@@ -64,7 +73,8 @@ class AppDatabase {
     return _database!;
   }
 
-  /// حفظ أو تعديل المنتج حسب الباركود؛ الإدخال والتعديل في عملية واحدة.
+  /// تسجيل منتج جديد فقط؛ ممنوع استبدال سجل موجود بنفس الباركود.
+  /// الكمية هنا هي رصيد البداية، واستلام البضاعة لاحقًا له عملية مستقلة.
   Future<void> saveProduct({
     required String barcode,
     required String name,
@@ -73,15 +83,77 @@ class AppDatabase {
     required int quantity,
     int lowStockThreshold = 5,
   }) async {
+    final code = barcode.trim();
+    final productName = name.trim();
+
+    if (code.isEmpty || productName.isEmpty) {
+      throw ArgumentError('الباركود واسم المنتج مطلوبان.');
+    }
+    if (buyPrice < 0 || sellPrice < 0 || quantity < 0) {
+      throw ArgumentError('الأسعار والكمية لا يمكن أن تكون سالبة.');
+    }
+
     final db = await database;
-    await db.insert('products', {
-      'barcode': barcode.trim(),
-      'name': name.trim(),
-      'buy_price': buyPrice,
-      'sell_price': sellPrice,
-      'quantity': quantity,
-      'low_stock_threshold': lowStockThreshold,
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.transaction((txn) async {
+      final existing = await txn.query(
+        'products',
+        columns: ['barcode'],
+        where: 'barcode = ?',
+        whereArgs: [code],
+        limit: 1,
+      );
+
+      if (existing.isNotEmpty) {
+        throw StateError(
+          'الباركود مسجل بالفعل. استخدم استلام بضاعة بدل تسجيل منتج جديد.',
+        );
+      }
+
+      await txn.insert('products', {
+        'barcode': code,
+        'name': productName,
+        'buy_price': buyPrice,
+        'sell_price': sellPrice,
+        'quantity': quantity,
+        'low_stock_threshold': lowStockThreshold,
+      });
+    });
+  }
+
+  /// استلام بضاعة لمنتج مسجل: نزود رصيده فقط ونحافظ على بياناته وأسعاره.
+  /// بنشترط كمية موجبة، وبننفذ القراءة والزيادة في معاملة واحدة.
+  Future<void> receiveStock({
+    required String barcode,
+    required int quantity,
+  }) async {
+    final code = barcode.trim();
+
+    if (code.isEmpty || quantity <= 0) {
+      throw ArgumentError('اكتب باركود صحيح وكمية أكبر من صفر.');
+    }
+
+    final db = await database;
+    await db.transaction((txn) async {
+      final rows = await txn.query(
+        'products',
+        columns: ['quantity'],
+        where: 'barcode = ?',
+        whereArgs: [code],
+        limit: 1,
+      );
+
+      if (rows.isEmpty) {
+        throw StateError('المنتج غير مسجل. سجّله الأول كمنتج جديد.');
+      }
+
+      final currentQuantity = rows.first['quantity']! as int;
+      await txn.update(
+        'products',
+        {'quantity': currentQuantity + quantity},
+        where: 'barcode = ?',
+        whereArgs: [code],
+      );
+    });
   }
 
   Future<List<Map<String, Object?>>> products({String search = ''}) async {
@@ -159,7 +231,8 @@ class AppDatabase {
           where: 'barcode = ?',
           whereArgs: [code],
           limit: 1,
-        )).first;
+        ))
+            .first;
 
         await txn.insert('sale_items', {
           'sale_id': saleId,
@@ -218,5 +291,14 @@ class AppDatabase {
       whereArgs: [start, end],
       orderBy: 'created_at DESC',
     );
+  }
+
+  /// يقفل اتصال قاعدة البيانات؛ مفيد لتنظيف الاختبارات.
+  Future<void> close() async {
+    final db = _database;
+    if (db == null) return;
+
+    await db.close();
+    _database = null;
   }
 }
