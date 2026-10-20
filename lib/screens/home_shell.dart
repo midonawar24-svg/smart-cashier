@@ -196,12 +196,52 @@ class _SalePageState extends State<SalePage> {
                   child: SizedBox(
                     height: 300,
                     child: MobileScanner(
+                      // بنعرض تفاصيل فشل الكاميرا بدل رسالة الخطأ العامة،
+                      // علشان نعرف السبب الحقيقي قبل ما نقرر إصلاحه.
+                      errorBuilder: (context, error) {
+                        final details = error.errorDetails?.message;
+                        final code = error.errorCode;
+
+                        return Container(
+                          color: const Color(0xFF101820),
+                          padding: const EdgeInsets.all(16),
+                          alignment: Alignment.center,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.camera_alt_outlined,
+                                color: Colors.orange,
+                                size: 42,
+                              ),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'الكاميرا مش قادرة تشتغل',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'كود الخطأ: $code\n'
+                                'التفاصيل: ${details ?? error.toString()}',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                       onDetect: (capture) {
                         final codes = capture.barcodes;
                         final code = codes.isEmpty
                             ? null
                             : codes.first.rawValue;
-                        if (code != null && code.isNotEmpty) {
+                        if (code != null && code.isNotEmpty && mounted) {
                           setState(() => _scanning = false);
                           _addBarcode(code);
                         }
