@@ -522,7 +522,7 @@ class _AccountsPageState extends State<AccountsPage> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _type,
+              initialValue: _type,
               items: const [
                 DropdownMenuItem(
                   value: 'مصروف تشغيلي',
